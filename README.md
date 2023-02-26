@@ -45,6 +45,4 @@ Instead of using `_PyParser_ASTFromFile` to go from file to AST, I can use `PyPa
 Finally, looking at how modules are defined in CPython I learned that C has union types. This is either cool or horrifying; I'm leaning toward cool.
 
 ## Feb 23
-Third meeting. 
-
-CS 81c confirmed, which is very welcome news since I only have like two more weeks of CS 81b.
+Third meeting. CS 81c confirmed, which is very welcome news since I only have like two more weeks of CS 81b.
