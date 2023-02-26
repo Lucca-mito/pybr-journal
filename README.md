@@ -5,7 +5,7 @@ First meeting. Created VM with more memory (issue with previous VMs was RAM, not
 Forked Python to create my own repo. Installed VSCode extension for `.gram` files.  
 
 ## Feb 12
-Changed `if` to `se` in `python.gram`. Ran configure and make. Didn't work: code with "se" raised syntax error and code with "if" worked fine. 
+Changed `if` to `se` in `python.gram`. Ran configure script and recompiled. Didn't work: code with "se" raised syntax error and code with "if" worked fine. 
 
 Meanwhile, how should I translate keywords like `return`? Issue with translating keywords like this one to a romance language: grammatical mood. Should they be in the indicative mood (e.g. "retorna"), imperative mood ("retorne"), or infinitive mood ("retornar")? Keywords should be in the same grammatical mood as functions for consistency and readability, so I can just ask my friends in Brazil who are now in the industry what grammatical mood they use for function names. Answer: indicative seems to be more popular.
 
