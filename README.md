@@ -45,7 +45,7 @@ Instead of using `_PyParser_ASTFromFile` to go from file to AST, I can use `PyPa
 Finally, looking at how modules are defined in CPython I learned that C has union types. This is either cool or horrifying; I'm leaning toward cool.
 
 ## Feb 23
-Third meeting. CS 81c confirmed, which is very welcome news since I only have like two more weeks of CS 81b.
+Third meeting. CS 81c confirmed, which is welcome news since I only have like two more weeks of CS 81b.
 
 ## Feb 25
-Moved this journal to a GitHub Page within the pybr repo. Didn't like that because this is journal is for me, not for other people working on pybr. Moved this journal to my personal GitHub Page. Didn't like that because I may put a portfolio there someday, and also because people with my GitHub may look at my Page and would be confused when they see... this. Moved this journal to its own repo. Yea this works.
+Moved this journal to a GitHub Page within the pybr repo. Didn't like that because this journal is for me, not for other people working on pybr. Moved this journal to my personal GitHub Page. Didn't like that because I may put a portfolio there someday, and also because people with my GitHub may look at my Page and would be confused when they see... this. Moved this journal to its own repo. Yea this works.
