@@ -45,7 +45,25 @@ Instead of using `_PyParser_ASTFromFile` to go from file to AST, I can use `PyPa
 Finally, looking at how modules are defined in CPython I learned that C has union types. This is either cool or horrifying; I'm leaning toward cool.
 
 ## Feb 23
-Third meeting. CS 81c confirmed, which is welcome news since I only have like two more weeks of CS 81b.
+Third meeting. CS 81c confirmed, which is welcome news since I only have like two more weeks of CS 81b. 
+
+Created `pybr-parser-playground` branch with a new file, `playground.c`, where I'll play around with the parser internals (particularly the functions I found on Feb 18) to understand how to use them.
 
 ## Feb 25
-Moved this journal to a GitHub Page within the pybr repo. Didn't like that because this journal is for me, not for other people working on pybr. Moved this journal to my personal GitHub Page. Didn't like that because I may put a portfolio there someday, and also because people with my GitHub may look at my Page and would be confused when they see... this. Moved this journal to its own repo. Yea this works.
+Moved this journal to a GitHub Page within the pybr repo. Didn't like that because this journal is for me, not for other people working on pybr. Moved this journal to my personal GitHub Page. Turns out GitHub Pages specifically need to be in HTML, and I don't feel like writing this journal in HTML or routinely converting it to HTML or figuring out some other workaround. Decided to just move this journal to its own repo, with the journal acting as the repo's README. This works.
+
+## Feb 27
+I found the header file where the `mod_ty` type is defined, as well as the one where the `_PyParser_ASTFromString` function (and `_PyParser_ASTFromFile`, but that's later) is defined. So I'm able to use these symbols in `playground.c`. But `run_mod` isn't in any header files (I checked). I'm able to use it in `playground.c` if I `#include pythonrun.c`, but my understanding is that including `.c` files is a bad idea. So if there are symbols from the parser internals that I want to use in `playground.h`, but these symbols aren't in any header files, I guess I just... add them to a new header file? Or I can also just copy-and-paste the symbols I want into `playground.c`. Both feel hacky.
+
+I'll worry about this later; having `_PyParser_ASTFromString` means that I *should* be able finally compile pybr source to AST, after I change and recompile the parser. And, yknow, figure out what exactly are the five `_PyParser_ASTFromString` parameters:
+
+1. `char* str`. This one is easy: it's just the Python source to compile.
+2. `PyObject* filename`. This one should be easy too, right? I'll just pass some dummy filename to something that gives me a `PyObject*` or whatever. Right? No. Almost every usage of a `PyObject` encoding a filename (I'm still not sure what's a `PyObject`, but it seems to be able to encode many different things) that I found gets the `PyObject` from somewhere else. I did find one instance of *creating* a `PyObject` from a filename string, but it used some absolutely *wacky* C macro nonsense. Specifically, the ritual involved the `_Py_DECLARE_STR` and `_Py_STR` macros from `pycore_global_strings.h`. So I tried to replicate the macro nonsense in `playground.c`, but couldn't get it to not give me a syntax error. Then I found a different potential approach: there's a function called `PyUnicode_FromWideChar` in `unicodeobject.c` that takes a `wchar_t*` and spits out a `PyObject*`. I presume that `wchar_t*` is a Unicode string, given the type's name and the name of the function I found it in. So it shouldn't be hard to convert a `char*` filename to a `wchar_t*` filename, then to use `PyUnicode_FromWideChar` to convert *that* to a `PyObject*` filename. Or, better yet, there's probably a function somewhere that takes me directly from `char*` to `PyObject*`. If I find it, I can skip the useless Unicode conversion. In any case, I'll get back to this `PyObject* filename` parameter later.
+3. `int mode`. I looked around and found the compilation modes in `compile.h`. One of them is called `Py_file_input`; I'm technically compiling from a string (for now), not a file, but this compilation mode  makes the most sense (and everything so far suggests that compiling from a string delegates to compiling from a dummy file anyway). So I'll use `Py_file_input` as the compilation mode. And the only usage of `_PyParser_ASTFromString` that doesn't get the `mode` from somewhere else passes `Py_file_input` as the `mode`, so I'm pretty sure that's right.
+4. `PyCompilerFlags* flags`. They're covered in Chapter 8.4 of the book, so I'll look at that later.
+5. `PyArena* arena`. Same as above, but in Chapter 10.8.
+
+## Feb 28
+There's a lot to unpack in the parameters from the list above, and I'd rather have fewer things to unpack. Found two functions (`PyRun_SimpleStringFlags` in `Python/pythonrun.c`, and `pymain_run_command` in `Modules/main.c`) that maybe could've been useful for compiling a string of Python source with just the compilation flags, instead of having to figure out all this stuff about `PyObject` and `PyArena` and whatnot. The functions were not, in fact, useful. So let's get to unpacking.
+
+`pyarena.c` and `pyarena.h`
