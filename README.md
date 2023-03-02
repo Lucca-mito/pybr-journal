@@ -47,7 +47,7 @@ Finally, looking at how modules are defined in CPython I learned that C has unio
 ## Feb 23
 Third meeting. CS 81c confirmed.
 
-Created `pybr-parser-playground` branch with a new file, `playground.c`, where I'll play around with the parser internals (particularly the functions I found on Feb 18) to understand how to use them.
+Created `pybr-parser-playground` branch with a new file, `playground.c`, where I'll play around with the parser internals (particularly the functions I found on Feb 18) to understand how to use them. Moved this journal to GitHub. Didn't like GitHub Pages, so I'll maintain the journal as the README of its own repo.
 
 ## Feb 27
 I found the header file where the `mod_ty` type is defined, as well as the one where the `_PyParser_ASTFromString` function (and `_PyParser_ASTFromFile`, but that's later) is defined. So I'm able to use these symbols in `playground.c`. But `run_mod` isn't in any header files (I checked). I'm able to use it in `playground.c` if I `#include pythonrun.c`, but my understanding is that including `.c` files is a bad idea. So if there are symbols from the parser internals that I want to use in `playground.h`, but these symbols aren't in any header files, I guess I just... add them to a new header file? Or I can also just copy-and-paste the symbols I want into `playground.c`. Both feel hacky.
@@ -71,12 +71,7 @@ One of them is called `PyCF_IGNORE_COOKIE`. I don't know what it is; the code, t
 
 The other potentially important flag is called `PyCF_ONLY_AST`. I did [find something about this on the web](https://docs.python.org/3/library/ast.html#ast-compiler-flags), though in a completely different context. The `compile` function built into Python also takes a set of flags, and one of these flags is called `PyCF_ONLY_AST`. `compile` returns an AST object if this flag is present, and a code object otherwise. But this is in Python land; so what does this mean in C land? After a bit of looking around, I found where several built-in Python functions (including `compile`) are implemented in C: `Python/bltinmodule.c`. The C function backing the `compile` Python function is `builtin_compile_impl`. Just like its Python counterpart, `builtin_compile_impl` takes a set of flags, and returns an AST if the `PyCF_ONLY_AST` flag is present (we're now in C land, so I'm talking about the actual `PyCF_ONLY_AST` flag defined in `compile.h`) and returns a code object otherwise. `compile` being able to return completely different things made perfect sense in the dynamically-typed lands of Python, but how is this done in C, where an AST is `mod_ty` and a code object is `PyCodeObject`? (No, it's not union types.) The answer is in `Py_CompileStringObject`, a function in `pythonrun.c` (an old friend) called by `builtin_compile_impl`. First, `Py_CompileStringObject` compiles the string to a `mod_ty`. If `PyCF_ONLY_AST` is present, the `mod_ty` is converted to a `PyObject` (using a function called `PyAST_mod2obj`, which I may find useful by itself) and returned. If `PyCF_ONLY_AST` is instead absent, that `mod_ty` is then further processed into a `PyCodeObject*` via `_PyAST_Compile` (another old friend) and "converted" to a `PyObject*` by simply casting the pointer.
 
-Ok, so what was the point of all that? Well, I learned two things. 
+Ok, so what was the point of all that? Well, I learned two things:
 
 1. First, I have the answer I was originally looking for: should I include `PyCF_ONLY_AST` in the flags I pass to `_PyParser_ASTFromString`? The answer is a definitive *it doesn't matter*. This flag is used by functions that can either compile to AST or to Python bytecode (like `builtin_compile_impl` and `Py_CompileStringObject`), so this flag is almost certainly not checked by functions like `_PyParser_ASTFromString` which always compile to AST.
 2. But the second and more important takeaway is that, by going down this rabbit hole, I now have a way of using the Python function `compile` from within C, which is probably a much easier way of compiling source to AST than my current approach (using `_PyParser_ASTFromString`). If I do this, the answer to whether I should include the `PyCF_ONLY_AST` flag is a definitive *yes*.
-
-## Mar 1
-`pyarena.c` and `pyarena.h`
-
-`_PyArena_New` (used
