@@ -1,8 +1,15 @@
+# Foreword
+[Below](#journal) is a journal I kept while working on a now-abandoned personal project. If you're developing your own flavor of Python, the information in this journal may be useful to you. If curious, here's a bit of context:
+
+- The original idea of the project was generalize a beginner-friendly programming language (say, Python) to one or more natural languages, making programming more accessible to people whose first language is not English. I then set a more specific initial goal: to fork CPython, translate its grammar into my first language (Brazilian Portuguese), and recompile the interpreter with this modified grammar to have a working version of Python in Portuguese ("pybr").
+- Some journal entries mention meetings with "Vanier". At Caltech, Professor Michael Vanier teaches CS 131 *"Programming Languages"*, the undergraduate course on programming language implementation that inspired the pybr project. When I told Prof. Vanier about the project idea, he was kind enough to offer to help as an advisor, hence the meetings with (and suggestions by) Prof. Vanier mentioned in the journal.
+- I worked on pybr for a little over a month, writing my findings and progress in the journal below. Turns out that the internals of CPython are pretty complicated. Untangling them was demanding more time than I could allocate to a personal side project during college, so I gradually abandoned pybr to work on [Swift Science](https://github.com/Lucca-mito/swift-science) instead. I'm keeping the journal as a public archive in case anyone else wants to try making pybr (or a similar project) a reality. Another useful resource, certainly more so than this journal, is *CPython Internals* by Anthony Shaw. It was indispensable to the pybr project; whenever the journal mentions "the book", this is the book.
+
+Anyway, here's the
+
 # Journal
 ## Feb 9
-First meeting. Created VM with more memory (issue with previous VMs was RAM, not storage after all). It actually worked this time: I compiled and ran the Python interpreter. 
-
-Forked Python to create my own repo. Installed VSCode extension for `.gram` files.  
+First meeting with Vanier. Compiled and ran the CPython interpreter. Forked CPython.
 
 ## Feb 12
 Changed `if` to `se` in `python.gram`. Ran configure script and recompiled. Didn't work: code with `se` raised syntax error and code with `if` worked fine. 
@@ -16,7 +23,7 @@ Looked into compiling Python without standard library. Impossible, unless I eith
 1. Transpile the whole Python source of the standard library to pybr. This would avoid syntax errors in the standard library because the source would now be written in legal pybr. 
 2. Compile the whole Python source of the standard library (everything in `Lib/`) to `.pyc` using unmodified Python. This would avoid syntax errors in the standard library because it would no longer consist of source code, but of precompiled code (which is the same for Python and pybr).
 
-Both fixes above sound intractable (especially the first one), and probably aren't long-term solutions since the standard library changes *very often*. So new plan: instead of turning the Python interpreter into a pybr interpreter, internally convert pybr source to Python AST and execute the AST (either with an internal custom Python install or with user's install; both approaches have pros and cons). One big plus side of this new plan is that pbybr–Python interop should be trivial once I get pybr to work.
+Both fixes above sound intractable (especially the first one), and probably aren't long-term solutions since additive changes are made to the standard library *very often*. So new plan: instead of turning the Python interpreter into a pybr interpreter, internally convert pybr source to Python AST and execute the AST (either with an internal custom Python install or with user's install; both approaches have pros and cons). One big plus side of this new plan is that pbybr–Python interop should be trivial once I get pybr to work.
 
 Looked into `Python/compile.c`. Not useful: it compiles AST, but what I'm worried about is getting to the AST. 
 
@@ -37,17 +44,15 @@ Conclusion: the actually useful discoveries were `_PyParser_ASTFromFile` (which 
 3. Use it to transform pybr source into Python AST.
 4. Feed the AST into the run_mod of an intact Python interpreter (including the original Python parser, not the one I generated in step 2) to run the AST I generated in step 3. Crucially, functions in the standard library will be parsed with the original Python parser, so no more syntax errors.
 
-Cool.
+Let's see what happens.
 
 ## Feb 22
 Instead of using `_PyParser_ASTFromFile` to go from file to AST, I can use `PyParser_ParseFileObject` to go from file to CST and then use `PyAST_FromNodeObject` to go from CST to AST. The two approaches are probably equivalent. But the fewer functions I use, the less likely it is that I use them incorrectly, so I’ll probably just use `_PyParser_ASTFromFile` after all. Also, I found where this function is defined: it's in `Parser/peg_api.c`, which also contains a `_PyParser_ASTFromString` function that should be useful for testing.
 
-Finally, looking at how modules are defined in CPython I learned that C has union types. This is either cool or horrifying; I'm leaning toward cool.
+Finally, looking at how modules are defined in CPython I learned that C has union types. Cool.
 
 ## Feb 23
-Third meeting. CS 81c confirmed.
-
-Created `pybr-parser-playground` branch with a new file, `playground.c`, where I'll play around with the parser internals (particularly the functions I found on Feb 18) to understand how to use them. Moved this journal to GitHub. Didn't like GitHub Pages, so I'll maintain the journal as the README of its own repo.
+Third meeting. Created `pybr-parser-playground` branch with a new file, `playground.c`, where I'll play around with the parser internals (particularly the functions I found on Feb 18) to understand how to use them.
 
 ## Feb 27
 I found the header file where the `mod_ty` type is defined, as well as the one where the `_PyParser_ASTFromString` function (and `_PyParser_ASTFromFile`, but that's later) is defined. So I'm able to use these symbols in `playground.c`. But `run_mod` isn't in any header files (I checked). I'm able to use it in `playground.c` if I `#include pythonrun.c`, but my understanding is that including `.c` files is a bad idea. So if there are symbols from the parser internals that I want to use in `playground.h`, but these symbols aren't in any header files, I guess I just... add them to a new header file? Or I can also just copy-and-paste the symbols I want into `playground.c`. Both feel hacky.
